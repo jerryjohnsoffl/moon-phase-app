@@ -1,4 +1,4 @@
-// api/moonApi.js - All API calls for moon data
+import Suncalc from "suncalc"
 const API_BASE = 'https://aa.usno.navy.mil/api';
 
 // Default location: Thrissur, Kerala, India
