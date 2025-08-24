@@ -1,5 +1,12 @@
-import Suncalc from "suncalc"
+import SunCalc from "suncalc";
+
 const API_BASE = 'https://aa.usno.navy.mil/api';
+
+// Calculate moon illumination fraction using SunCalc
+function calculateIllumination(date = new Date()) {
+  const moonIllumination = SunCalc.getMoonIllumination(date);
+  return moonIllumination.fraction;
+}
 
 // Default location: Thrissur, Kerala, India
 const DEFAULT_COORDINATES = {
@@ -47,13 +54,20 @@ export const getCurrentMoonPhase = async (
       throw new Error(`API Error: ${data.error}`);
     }
     
-    // Extract moon data from response
-    const moonInfo = data.properties.data;
+    // Extract moon data from response - verify the actual structure
+    const moonInfo = data.properties?.data;
+    
+    if (!moonInfo) {
+      throw new Error('Invalid API response structure');
+    }
+    
+    // Calculate illumination using SunCalc
+    const illumination = calculateIllumination(new Date(today));
     
     // Return formatted data
     const result = {
-      phase: moonInfo.curphase,
-      illumination: Math.round(moonInfo.fracillum * 100), // Convert to percentage
+      phase: moonInfo.curphase || "Unknown",
+      illumination: Math.round(illumination * 100), // Convert to percentage
       date: today,
       closestPhase: moonInfo.closestphase,
       moonData: moonInfo.moondata // Additional moon events for today
@@ -112,13 +126,24 @@ export const getNext7Days = async (
           continue; // Skip this day and continue
         }
         
+        const moonInfo = data.properties?.data;
+        
+        if (!moonInfo) {
+          console.warn(`⚠️ Invalid data structure for ${dateStr}`);
+          continue;
+        }
+        
+        // Calculate illumination using SunCalc
+        const illumination = calculateIllumination(new Date(dateStr));
+        
         // Format the data for this day
         const dayData = {
           date: dateStr,
           dayName: currentDate.toLocaleDateString('en', { weekday: 'short' }),
           fullDate: currentDate.toLocaleDateString('en', { month: 'short', day: 'numeric' }),
-          phase: data.properties.data.curphase,
-          illumination: Math.round(data.properties.data.fracillum * 100)
+          phase: moonInfo.curphase || "Unknown",
+          illumination: Math.round(illumination * 100),
+          moonData: moonInfo.moondata
         };
         
         phases.push(dayData);
@@ -175,15 +200,25 @@ export const getPrimaryMoonPhases = async (numPhases = 8) => {
       throw new Error(`API Error: ${data.error}`);
     }
     
+    if (!data.phasedata || !Array.isArray(data.phasedata)) {
+      throw new Error('Invalid phase data structure');
+    }
+    
     // Format the phase data
-    const formattedPhases = data.phasedata.map(phase => ({
-      phase: phase.phase,
-      date: `${phase.year}-${phase.month.toString().padStart(2, '0')}-${phase.day.toString().padStart(2, '0')}`,
-      time: phase.time,
-      year: phase.year,
-      month: phase.month,
-      day: phase.day
-    }));
+    const formattedPhases = data.phasedata.map(phase => {
+      const dateStr = `${phase.year}-${phase.month.toString().padStart(2, '0')}-${phase.day.toString().padStart(2, '0')}`;
+      const illumination = calculateIllumination(new Date(dateStr));
+      
+      return {
+        phase: phase.phase,
+        date: dateStr,
+        time: phase.time,
+        year: phase.year,
+        month: phase.month,
+        day: phase.day,
+        illumination: Math.round(illumination * 100)
+      };
+    });
     
     console.log('✅ Primary moon phases data:', formattedPhases);
     return formattedPhases;
