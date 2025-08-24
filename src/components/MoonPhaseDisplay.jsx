@@ -172,10 +172,7 @@ const MoonPhaseDisplay = ({
       {/* Footer */}
       <div className="text-center py-8 text-purple-300">
         <p className="text-sm">
-          Data provided by US Naval Observatory • Made with ❤️ for moon lovers
-        </p>
-        <p className="text-xs mt-2 opacity-75">
-          Location: Thrissur, Kerala, India 🇮🇳
+          Data provided by US Naval Observatory
         </p>
       </div>
 
